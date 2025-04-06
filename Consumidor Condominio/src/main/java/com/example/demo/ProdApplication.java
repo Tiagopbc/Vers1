@@ -8,13 +8,11 @@ import org.springframework.context.annotation.Bean;
 @SpringBootApplication
 public class ProdApplication {
 
-	// Em vez de "direct-exchange"
-	static final String topicExchangeName = "topic-exchange"; // nome que preferir
+	static final String topicExchange = "topic-exchange";
 
 	@Bean
 	TopicExchange exchange() {
-		// autoDelete = true (conforme seu exemplo), durable = false
-		return new TopicExchange(topicExchangeName, false, true);
+		return new TopicExchange(topicExchange, false, true);
 	}
 
 	public static void main(String[] args) {

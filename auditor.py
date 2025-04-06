@@ -2,7 +2,6 @@ import pika
 import ssl
 import certifi
 
-# Substitua pela sua URL do CloudAMQP
 url = 'amqps://tskvjkbi:u9k0vaTKJOIlzmxIv6Zc9OdyaOH8h52L@hawk-01.rmq.cloudamqp.com/tskvjkbi'
 params = pika.URLParameters(url)
 
