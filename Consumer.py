@@ -28,54 +28,62 @@ def main():
     result = channel.queue_declare(queue='', exclusive=True)
     queue_name = result.method.queue
 
-    print("\n=== Consumidor ===")
-    print("Escolha em quais blocos deseja se inscrever.")
-    print("Exemplos:")
-    print("- Digite 'A' para Bloco A")
-    print("- Digite 'A,B' para Bloco A e Bloco B")
-    print("- Digite 'TODOS' para receber de todos os blocos\n")
+    while True:
+        print("\n" + "=" * 50)
+        print("     🏢  CENTRAL DE NOTIFICAÇÃO DO PRÉDIO")
+        print("=" * 50 + "\n")
 
-    opcao = input("Digite sua escolha: ").strip().upper()
+        print("📍 Escolha em quais blocos deseja se inscrever:")
+        print("   ➤ Digite 'A' para Bloco A")
+        print("   ➤ Digite 'A,B' para Bloco A e Bloco B")
+        print("   ➤ Digite 'TODOS' para receber de todos os blocos\n")
 
-    # Se o usuário digitar "TODOS", faz binding com '#' (significa todas as rotas)
-    if opcao == "TODOS":
-        binding_keys = ["bloco.#"]
-    else:
-        # Exemplo: se o usuário digitar "A,B,E", vamos gerar:
-        #   bloco.A.#
-        #   bloco.B.#
-        #   bloco.E.#
-        # Assim ele recebe avisos de todos esses blocos
-        blocos = [b.strip() for b in opcao.split(',')]
-        binding_keys = [f"bloco.{bloco}.#" for bloco in blocos]
+        opcao = input("🔸 Sua escolha: ").strip().upper()
 
-        # Agora, adicionamos também 'bloco.geral.aviso' (ou 'bloco.geral.#')
-        # para receber as mensagens de "TODOS" que o produtor manda (ex: "bloco.geral.aviso").
-        # Isso garante que mesmo quem escolheu A,C também receba as mensagens gerais.
-        binding_keys.append("bloco.geral.#")
+        if opcao == "TODOS" or opcao == "todos" or opcao == "A,B,C,D,E":
+            binding_keys = ["bloco.#"]
+        elif opcao in [
+            "A", "B", "C", "D", "E",
+            "A,B", "A,C", "A,D", "A,E",
+            "B,C", "B,D", "B,E",
+            "C,D", "C,E", "D,E",
+            "A,B,C", "A,B,D", "A,B,E",
+            "A,C,D", "A,C,E", "A,D,E",
+            "B,C,D", "B,C,E", "B,D,E",
+            "C,D,E", "A,B,C,D", "A,B,C,E",
+            "A,B,D,E", "A,C,D,E", "B,C,D,E",
+        ]:
+            blocos = [b.strip() for b in opcao.split(',')]
+            binding_keys = [f"bloco.{bloco}.#" for bloco in blocos]
+        else:
+            print("\n[✗] Opção inválida! Tente novamente.")
+            print("[!] Exemplos válidos: 'A', 'B,C', ou 'TODOS'\n")
+            continue
 
-    # Faz o binding da fila com cada binding_key selecionada
-    for bk in binding_keys:
-        channel.queue_bind(
-            exchange=topic_exchange,
+        print("\n📡 Inscrevendo nos blocos selecionados...\n")
+        for bk in binding_keys:
+            channel.queue_bind(
+                exchange=topic_exchange,
+                queue=queue_name,
+                routing_key=bk
+            )
+            if bk == "bloco.#":
+                print("  ✅ Inscrito em: 'TODOS os blocos'")
+            else:
+                print(f"  ✅ Inscrito em: '{bk}'")
+
+        print("\n🔗 Conectado à CloudAMQP! Aguardando mensagens...\n")
+
+        def callback(ch, method, properties, body):
+            print(f"📬 Nova mensagem: '{body.decode()}'  Chave de Roteamento: ({method.routing_key})")
+
+        channel.basic_consume(
             queue=queue_name,
-            routing_key=bk
+            on_message_callback=callback,
+            auto_ack=True
         )
-        print(f"[✓] Inscrito na routing key '{bk}'")
 
-    print("\n[✓] Conectado à CloudAMQP! Aguardando mensagens...\n")
-
-    def callback(ch, method, properties, body):
-        print(f"[→] Mensagem recebida: {body.decode()} (routing_key={method.routing_key})")
-
-    channel.basic_consume(
-        queue=queue_name,
-        on_message_callback=callback,
-        auto_ack=True
-    )
-
-    channel.start_consuming()
-
+        channel.start_consuming()
 
 if __name__ == "__main__":
     main()
